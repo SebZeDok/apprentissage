@@ -886,7 +886,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
         <div class="sem-display" id="semDisplay" onclick="toggleSemDropdown()"></div>
         <div class="sem-dropdown" id="semDropdown"></div>
       </div>
-      <button class="pill-btn" onclick="openSemModal()">📅 Semestres</button>
+      <button class="pill-btn" onclick="openSemModal()">📅 Périodes</button>
       <button class="pill-btn" onclick="goBack()">← Changer</button>
     </div>
   </header>
@@ -962,7 +962,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
       </div>
     </div>
     <div class="form-group"><label>Titre *</label><input type="text" id="inputTitle" placeholder="ex : Physique des particules" maxlength="60" /></div>
-    <div class="form-group"><label>Description</label><textarea id="inputDesc" placeholder="Ce que tu veux apprendre ce semestre…"></textarea></div>
+    <div class="form-group"><label>Description</label><textarea id="inputDesc" placeholder="Ce que tu veux apprendre cette période…"></textarea></div>
     <div class="form-row">
       <div class="form-group"><label>Prévisionnel</label><input type="text" id="inputPlanned" placeholder="ex : 5 livres, 10 fiches…" /></div>
       <div class="form-group"><label>Consommé</label><input type="text" id="inputConsumed" placeholder="ex : 2 livres…" /></div>
@@ -1009,11 +1009,11 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 <!-- ═══ Semester Manager Modal ═══ -->
 <div class="modal-overlay" id="semModal">
   <div class="modal glass-strong" style="max-width:420px">
-    <h2>📅 Gérer les semestres</h2>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">Chaque semestre a ses propres sujets. Vous pouvez naviguer librement entre les semestres.</p>
+    <h2>📅 Gérer les périodes</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">Chaque période a ses propres sujets. Vous pouvez naviguer librement entre les périodes.</p>
 
     <div class="form-group">
-      <label>Nouveau semestre</label>
+      <label>Nouvelle période</label>
       <div class="sem-new-input">
         <input type="text" id="newSemName" placeholder="ex : Printemps 2026" maxlength="40" style="flex:1" />
         <button class="btn primary" onclick="addSemester()" style="flex:none;padding:11px 18px;font-size:13px">Créer</button>
@@ -1021,7 +1021,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
     </div>
 
     <div class="form-group">
-      <label>Semestres de <span id="semModalChild"></span></label>
+      <label>Périodes de <span id="semModalChild"></span></label>
       <div class="sem-list" id="semList"></div>
     </div>
 
@@ -1059,7 +1059,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
       <div class="backup-stats-grid">
         <div class="backup-stat">
           <div class="backup-stat-num" id="backupNbSem">—</div>
-          <div class="backup-stat-label">Semestre(s)</div>
+          <div class="backup-stat-label">Période(s)</div>
         </div>
         <div class="backup-stat">
           <div class="backup-stat-num" id="backupNbSubjects">—</div>
@@ -1678,7 +1678,7 @@ function commitRenameSemester(oldName) {
   if (!newName || newName === oldName) { renderSemList(); return; }
   const meta = getMeta(currentChild);
   if (meta.semesters.includes(newName)) {
-    showToast('⚠️ Ce semestre existe déjà');
+    showToast('⚠️ Cette période existe déjà');
     renderSemList();
     return;
   }
@@ -1696,14 +1696,14 @@ function commitRenameSemester(oldName) {
   renderSemList();
   renderSemDropdown();
   render();
-  showToast(`✅ Semestre renommé en "${newName}"`);
+  showToast(`✅ Période renommée en "${newName}"`);
 }
 
 function addSemester() {
   const name = document.getElementById('newSemName').value.trim();
   if (!name) { showToast('⚠️ Nom requis'); return; }
   const meta = getMeta(currentChild);
-  if (meta.semesters.includes(name)) { showToast('⚠️ Ce semestre existe déjà'); return; }
+  if (meta.semesters.includes(name)) { showToast('⚠️ Cette période existe déjà'); return; }
   meta.semesters.push(name);
   meta.activeSemester = name;
   saveMeta(currentChild, meta);
@@ -1713,15 +1713,15 @@ function addSemester() {
   renderSemList();
   renderSemDropdown();
   render();
-  showToast(`✅ Semestre "${name}" créé !`);
+  showToast(`✅ Période "${name}" créée !`);
 }
 
 function deleteSemester(sem) {
   const meta = getMeta(currentChild);
   const count = getSubjects(currentChild, sem).length;
   const msg = count > 0
-    ? `Supprimer le semestre "${sem}" et ses ${count} sujet(s) ?\n\nCette action est irréversible.`
-    : `Supprimer le semestre "${sem}" ?`;
+    ? `Supprimer la période "${sem}" et ses ${count} sujet(s) ?\n\nCette action est irréversible.`
+    : `Supprimer la période "${sem}" ?`;
   if (!confirm(msg)) return;
   meta.semesters = meta.semesters.filter(s => s !== sem);
   localStorage.removeItem(`data_${currentChild}_${sem}`);
@@ -1735,7 +1735,7 @@ function deleteSemester(sem) {
   renderSemList();
   renderSemDropdown();
   render();
-  showToast('🗑️ Semestre supprimé');
+  showToast('🗑️ Période supprimée');
 }
 
 // ─── Render ───────────────────────────────────────────────────────
@@ -1746,7 +1746,7 @@ function render() {
   const circ = 2 * Math.PI * 19;
 
   if (!subjects.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="emoji">🌱</div><p>Aucun sujet pour ce semestre.<br>Ajoute ton premier objectif !</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="emoji">🌱</div><p>Aucun sujet pour cette période.<br>Ajoute ton premier objectif !</p></div>`;
   } else {
     subjects.forEach(s => {
       const pct = Math.min(100, Math.max(0, s.progress || 0));
