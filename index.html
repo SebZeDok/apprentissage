@@ -448,7 +448,6 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .resource-link a { color: var(--accent); }
 
 /* Add item row */
-.add-item-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-item-input {
   flex: 1; padding: 9px 13px; border-radius: var(--radius-sm);
   border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.55);
@@ -456,15 +455,15 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
   transition: border-color 0.15s;
 }
 .add-item-input:focus { border-color: var(--accent); }
-.add-item-btn {
-  padding: 9px 16px; border-radius: var(--radius-sm);
-  background: var(--accent); color: white; border: none;
-  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
-  transition: opacity 0.15s; white-space: nowrap;
+
+/* "+" trigger button that opens the add modal for a detail tab */
+.tab-add-btn {
+  width: 100%; margin-top: 14px; padding: 12px; border-radius: var(--radius-sm);
+  border: 1.5px dashed rgba(0,0,0,0.18); background: rgba(255,255,255,0.35);
+  color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
 }
-.add-item-btn:hover { opacity: 0.82; }
-.add-item-btn.secondary { background: rgba(0,0,0,0.07); color: var(--text-primary); }
-.add-item-btn.secondary:hover { background: rgba(0,0,0,0.13); opacity: 1; }
+.tab-add-btn:hover { background: rgba(255,255,255,0.65); border-color: var(--accent); }
 
 /* Resource URL field */
 .resource-url-wrap { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
@@ -487,9 +486,6 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .journal-entry:hover .journal-entry-del { opacity: 1; }
 .journal-entry-del:hover { color: #ff3b30; }
 
-.journal-new { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-.journal-new textarea { min-height: 90px; font-size: 14px; }
-.journal-new .add-item-row { margin-top: 0; }
 
 /* Empty items */
 .items-empty { text-align: center; padding: 30px 10px; color: var(--text-secondary); font-size: 14px; }
@@ -682,6 +678,8 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .time-session-row:hover { background: rgba(0,0,0,0.02); }
 .time-session-mins { font-size: 14px; font-weight: 800; color: #5856D6; min-width: 52px; }
 .time-session-date { flex: 1; font-size: 12px; color: var(--text-secondary); }
+.time-session-info { font-size: 13px; opacity: 0.55; cursor: help; flex-shrink: 0; }
+.time-session-info:hover { opacity: 1; }
 .time-session-del {
   width: 24px; height: 24px; border-radius: 6px; border: none; cursor: pointer;
   background: none; color: rgba(255,59,48,0.4); font-size: 14px; display: flex; align-items: center; justify-content: center;
@@ -796,11 +794,6 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .row-edit-btn:hover { background: rgba(0,122,255,0.1); }
 
 
-.obj-add-form {
-  display: flex; flex-direction: column; gap: 8px;
-  margin-top: 14px; padding: 14px; border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.38); border: 1px solid rgba(255,255,255,0.6);
-}
 .obj-add-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .obj-add-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 3px; }
 
@@ -1099,77 +1092,22 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
   <div class="detail-body">
     <div class="tab-pane active" id="pane-objectives">
       <div class="items-section" id="objList"></div>
-      <div class="obj-add-form">
-        <div>
-          <div class="obj-add-label">Titre *</div>
-          <input class="add-item-input" id="objInput" placeholder="Nom de l'objectif…" maxlength="200" style="margin:0"/>
-        </div>
-        <div>
-          <div class="obj-add-label">Description</div>
-          <input class="add-item-input" id="objDesc" placeholder="Détails, notes…" maxlength="400" style="margin:0"/>
-        </div>
-        <div class="obj-add-row2">
-          <div>
-            <div class="obj-add-label">Prévisionnel</div>
-            <input class="add-item-input" id="objPlanned" type="number" min="0" placeholder="ex : 10" style="margin:0"/>
-          </div>
-          <div>
-            <div class="obj-add-label">Consommé</div>
-            <input class="add-item-input" id="objConsumed" type="number" min="0" placeholder="ex : 3" style="margin:0"/>
-          </div>
-        </div>
-        <div class="add-item-row" style="margin-top:0">
-          <button class="add-item-btn" onclick="addObjective()">+ Ajouter l'objectif</button>
-        </div>
-      </div>
+      <button class="tab-add-btn" onclick="openEditObjModal()">+ Nouvel objectif</button>
     </div>
 
     <div class="tab-pane" id="pane-methodology">
       <div class="items-section" id="methoList"></div>
-      <div class="obj-add-form">
-        <div>
-          <div class="obj-add-label">Titre de la méthodologie *</div>
-          <input class="add-item-input" id="methoInput" placeholder="Ajouter une méthodologie…" maxlength="200" style="margin:0"/>
-        </div>
-        <div id="methoObjLinksWrap">
-          <div class="obj-add-label">Objectifs concernés</div>
-          <div id="methoObjLinks" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
-        </div>
-        <div class="add-item-row" style="margin-top:0">
-          <button class="add-item-btn" onclick="addMethodologyItem()">+ Ajouter</button>
-        </div>
-      </div>
+      <button class="tab-add-btn" onclick="openItemEditModal('methodology')">+ Nouvelle méthodologie</button>
     </div>
 
     <div class="tab-pane" id="pane-resources">
       <div class="items-section" id="resList"></div>
-      <div class="obj-add-form">
-        <div>
-          <div class="obj-add-label">Nom *</div>
-          <input class="add-item-input" id="resNameInput" placeholder="Nom de la ressource…" maxlength="200" style="margin:0"/>
-        </div>
-        <div>
-          <div class="obj-add-label">Lien URL</div>
-          <input class="add-item-input" id="resUrlInput" placeholder="https://…" maxlength="500" style="margin:0"/>
-        </div>
-        <div>
-          <div class="obj-add-label">Objectifs concernés</div>
-          <div id="resObjLinks" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
-        </div>
-        <div class="add-item-row" style="margin-top:0">
-          <button class="add-item-btn" onclick="addResourceItem()">+ Ajouter la ressource</button>
-        </div>
-      </div>
+      <button class="tab-add-btn" onclick="openItemEditModal('resources')">+ Nouvelle ressource</button>
     </div>
 
     <div class="tab-pane" id="pane-journal">
       <div id="journalList"></div>
-      <div class="journal-new">
-        <textarea class="add-item-input" id="journalInput" placeholder="Note du jour… ce que j'ai fait, appris, ou réfléchi" maxlength="2000"></textarea>
-        <div class="add-item-row">
-          <button class="add-item-btn" onclick="addJournalEntry()">✍️ Ajouter une note</button>
-        </div>
-      </div>
+      <button class="tab-add-btn" onclick="openItemEditModal('journal')">+ Nouvelle note</button>
     </div>
   </div>
   </div><!-- /.detail-popup -->
@@ -1178,7 +1116,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 <!-- ═══ Edit Objective Modal ═══ -->
 <div id="editObjModal">
   <div class="edit-obj-box">
-    <h3>✏️ Modifier l'objectif</h3>
+    <h3 id="editObjModalTitle">✏️ Modifier l'objectif</h3>
     <div>
       <div class="obj-add-label">Titre *</div>
       <input class="add-item-input" id="editObjInput" placeholder="Nom de l'objectif…" maxlength="200" style="margin:0"/>
@@ -1224,6 +1162,11 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
           <div class="obj-add-label">Date</div>
           <input class="add-item-input" type="date" id="timeDate" style="margin:0"/>
         </div>
+      </div>
+      <div>
+        <div class="obj-add-label">Description</div>
+        <input class="add-item-input" id="timeDesc" placeholder="Ce que tu as fait…" maxlength="300" style="margin:0"
+          onkeydown="if(event.key==='Enter')saveTimeSession()"/>
       </div>
       <div class="time-quick-chips">
         <span class="time-quick-chip" onclick="document.getElementById('timeInput').value='15m'">15m</span>
@@ -2024,8 +1967,6 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('pane-' + tab).classList.add('active');
-  if (tab === 'methodology') buildMethoObjLinks();
-  if (tab === 'resources') buildResObjLinks();
   if (detailSubjectId) renderDetailTab(tab);
 }
 
@@ -2157,38 +2098,6 @@ function renderResources(items) {
   }).join('');
 }
 
-// ─── Resources: objective linking ────────────────────────────────
-function buildResObjLinks() {
-  const container = document.getElementById('resObjLinks');
-  if (!container) return;
-  const details = getSubjectDetails(detailSubjectId);
-  const objs = details.objectives;
-  if (!objs.length) {
-    container.innerHTML = '<span style="font-size:12px;color:var(--text-secondary);font-style:italic">Aucun objectif défini pour ce sujet.</span>';
-    return;
-  }
-  container.innerHTML = objs.map((o, i) => `
-    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:100px;background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.07);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
-      <input type="checkbox" data-obj-idx="${i}" style="width:13px;height:13px;accent-color:var(--accent);padding:0;border:none;box-shadow:none;background:none"/>
-      ${escHtml(o.text.length > 28 ? o.text.slice(0,28)+'…' : o.text)}
-    </label>`).join('');
-}
-
-function addResourceItem() {
-  const text = document.getElementById('resNameInput').value.trim();
-  if (!text) { showToast('⚠️ Le nom est requis'); return; }
-  const url = document.getElementById('resUrlInput').value.trim();
-  const checked = [...document.querySelectorAll('#resObjLinks input[type=checkbox]:checked')];
-  const linkedObjIndices = checked.map(cb => parseInt(cb.dataset.objIdx));
-  const details = getSubjectDetails(detailSubjectId);
-  details.resources.push({ name: text, url, done: false, linkedObjIndices });
-  document.getElementById('resNameInput').value = '';
-  document.getElementById('resUrlInput').value = '';
-  document.querySelectorAll('#resObjLinks input[type=checkbox]').forEach(cb => cb.checked = false);
-  saveSubjectDetails(detailSubjectId, details);
-  renderDetailTab('resources');
-  showToast('✅ Ressource ajoutée !');
-}
 
 function renderJournal(entries) {
   const el = document.getElementById('journalList');
@@ -2263,9 +2172,11 @@ function renderTimeModalSessions() {
     sessions.map((s, si) => {
       const d = new Date(s.date);
       const ds = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+      const infoIcon = s.desc ? `<span class="time-session-info" title="${escHtml(s.desc)}">ℹ️</span>` : '';
       return `<div class="time-session-row">
         <span class="time-session-mins">${formatMinutes(s.mins)}</span>
         <span class="time-session-date">${ds}</span>
+        ${infoIcon}
         <button class="time-session-del" onclick="deleteTimeSession(${timingObjIndex},${si})" title="Supprimer">✕</button>
       </div>`;
     }).join('');
@@ -2278,6 +2189,7 @@ function openTimeModal(objIdx) {
   document.getElementById('timeModalObjName').textContent = obj ? obj.text : '';
   document.getElementById('timeInput').value = '';
   document.getElementById('timeDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('timeDesc').value = '';
   renderTimeModalSessions();
   document.getElementById('timeModal').classList.add('open');
   setTimeout(() => document.getElementById('timeInput').focus(), 80);
@@ -2294,16 +2206,18 @@ function saveTimeSession() {
   if (!mins) { showToast('⚠️ Durée invalide (ex : 1h30, 45m)'); return; }
   const dateVal = document.getElementById('timeDate').value;
   const date = dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : new Date().toISOString();
+  const desc = document.getElementById('timeDesc').value.trim();
   const details = getSubjectDetails(detailSubjectId);
   const obj = details.objectives[timingObjIndex];
   if (!obj) return;
   if (!obj.sessions) obj.sessions = [];
-  obj.sessions.push({ mins, date });
+  obj.sessions.push({ mins, date, desc });
   obj.sessions.sort((a,b) => new Date(b.date) - new Date(a.date));
   saveSubjectDetails(detailSubjectId, details);
   updateDetailTotalTime(details);
   renderDetailTab('objectives');
   document.getElementById('timeInput').value = '';
+  document.getElementById('timeDesc').value = '';
   renderTimeModalSessions();
   showToast(`⏱ +${formatMinutes(mins)} ajouté !`);
 }
@@ -2361,7 +2275,8 @@ let _itemEditState = null;
 
 function openItemEditModal(section, index) {
   const details = getSubjectDetails(detailSubjectId);
-  _itemEditState = { section, index };
+  const isNew = (index === undefined || index === null);
+  _itemEditState = { section, index: isNew ? null : index };
   let title = '', html = '';
 
   const objs = details.objectives;
@@ -2374,33 +2289,39 @@ function openItemEditModal(section, index) {
     : '<span style="font-size:12px;color:var(--text-secondary);font-style:italic">Aucun objectif défini.</span>';
 
   if (section === 'methodology') {
-    const item = details.methodology[index];
-    title = '✏️ Modifier la méthodologie';
+    const item = isNew ? null : details.methodology[index];
+    title = isNew ? '➕ Nouvelle méthodologie' : '✏️ Modifier la méthodologie';
     html = `
       <div><div class="obj-add-label">Titre de la méthodologie *</div>
-        <input class="add-item-input" id="ieMain" value="${escHtml(item.text)}" maxlength="200" style="margin:0"/></div>
+        <input class="add-item-input" id="ieMain" value="${isNew ? '' : escHtml(item.text)}" maxlength="200" style="margin:0"/></div>
       <div><div class="obj-add-label">Objectifs concernés</div>
-        ${checkboxes(new Set(item.linkedObjIndices||[]))}</div>`;
+        ${checkboxes(new Set(isNew ? [] : (item.linkedObjIndices||[])))}</div>`;
   } else if (section === 'resources') {
-    const item = details.resources[index];
-    title = '✏️ Modifier la ressource';
+    const item = isNew ? null : details.resources[index];
+    title = isNew ? '➕ Nouvelle ressource' : '✏️ Modifier la ressource';
     html = `
       <div><div class="obj-add-label">Nom *</div>
-        <input class="add-item-input" id="ieMain" value="${escHtml(item.name)}" maxlength="200" style="margin:0"/></div>
+        <input class="add-item-input" id="ieMain" value="${isNew ? '' : escHtml(item.name)}" maxlength="200" style="margin:0"/></div>
       <div><div class="obj-add-label">Lien URL</div>
-        <input class="add-item-input" id="ieUrl" value="${escHtml(item.url||'')}" maxlength="500" style="margin:0"/></div>
+        <input class="add-item-input" id="ieUrl" value="${isNew ? '' : escHtml(item.url||'')}" maxlength="500" style="margin:0"/></div>
       <div><div class="obj-add-label">Objectifs concernés</div>
-        ${checkboxes(new Set(item.linkedObjIndices||[]))}</div>`;
+        ${checkboxes(new Set(isNew ? [] : (item.linkedObjIndices||[])))}</div>`;
   } else if (section === 'journal') {
-    const sorted = [...details.journal].sort((a,b)=>new Date(b.date)-new Date(a.date));
-    const origIdx = details.journal.indexOf(sorted[index]);
-    _itemEditState.origIdx = origIdx;
-    const entry = details.journal[origIdx];
-    const dv = entry.date ? new Date(entry.date).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
-    title = '✏️ Modifier la note';
+    let entry, dv;
+    if (isNew) {
+      entry = { text: '' };
+      dv = new Date().toISOString().slice(0,10);
+    } else {
+      const sorted = [...details.journal].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      const origIdx = details.journal.indexOf(sorted[index]);
+      _itemEditState.origIdx = origIdx;
+      entry = details.journal[origIdx];
+      dv = entry.date ? new Date(entry.date).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+    }
+    title = isNew ? '➕ Nouvelle note' : '✏️ Modifier la note';
     html = `
       <div><div class="obj-add-label">Note *</div>
-        <textarea class="add-item-input" id="ieMain" rows="5" maxlength="2000" style="margin:0;resize:vertical">${escHtml(entry.text)}</textarea></div>
+        <textarea class="add-item-input" id="ieMain" rows="5" maxlength="2000" style="margin:0;resize:vertical">${isNew ? '' : escHtml(entry.text)}</textarea></div>
       <div><div class="obj-add-label">Date</div>
         <input class="add-item-input" type="date" id="ieDate" value="${dv}" style="margin:0"/></div>`;
   }
@@ -2419,65 +2340,49 @@ function closeItemEditModal() {
 function saveItemEdit() {
   if (!_itemEditState) return;
   const { section, index } = _itemEditState;
+  const isNew = (index === null || index === undefined);
   const details = getSubjectDetails(detailSubjectId);
   const val = document.getElementById('ieMain').value.trim();
   if (!val) { showToast('⚠️ Champ requis'); return; }
   const linkedIndices = () => [...document.querySelectorAll('#itemEditFields input[type=checkbox]:checked')].map(cb=>parseInt(cb.dataset.objIdx));
 
   if (section === 'methodology') {
-    details.methodology[index].text = val;
-    details.methodology[index].linkedObjIndices = linkedIndices();
+    if (isNew) {
+      details.methodology.push({ text: val, done: false, linkedObjIndices: linkedIndices() });
+    } else {
+      details.methodology[index].text = val;
+      details.methodology[index].linkedObjIndices = linkedIndices();
+    }
   } else if (section === 'resources') {
-    details.resources[index].name = val;
-    details.resources[index].url = (document.getElementById('ieUrl')||{}).value?.trim()||'';
-    details.resources[index].linkedObjIndices = linkedIndices();
+    const url = (document.getElementById('ieUrl')||{}).value?.trim()||'';
+    if (isNew) {
+      details.resources.push({ name: val, url, done: false, linkedObjIndices: linkedIndices() });
+    } else {
+      details.resources[index].name = val;
+      details.resources[index].url = url;
+      details.resources[index].linkedObjIndices = linkedIndices();
+    }
   } else if (section === 'journal') {
-    const origIdx = _itemEditState.origIdx;
-    details.journal[origIdx].text = val;
     const dv = (document.getElementById('ieDate')||{}).value;
-    if (dv) details.journal[origIdx].date = new Date(dv+'T12:00:00').toISOString();
+    if (isNew) {
+      const date = dv ? new Date(dv+'T12:00:00').toISOString() : new Date().toISOString();
+      details.journal.push({ text: val, date });
+    } else {
+      const origIdx = _itemEditState.origIdx;
+      details.journal[origIdx].text = val;
+      if (dv) details.journal[origIdx].date = new Date(dv+'T12:00:00').toISOString();
+    }
   }
   saveSubjectDetails(detailSubjectId, details);
   renderDetailTab(section);
   closeItemEditModal();
-  showToast('✏️ Modifié !');
+  showToast(isNew ? '✅ Ajouté !' : '✏️ Modifié !');
 }
 
 document.getElementById('itemEditModal').addEventListener('click', function(e) {
   if (e.target === this) closeItemEditModal();
 });
 
-
-function buildMethoObjLinks() {
-  const container = document.getElementById('methoObjLinks');
-  if (!container) return;
-  const details = getSubjectDetails(detailSubjectId);
-  const objs = details.objectives;
-  if (!objs.length) {
-    container.innerHTML = '<span style="font-size:12px;color:var(--text-secondary);font-style:italic">Aucun objectif défini pour ce sujet.</span>';
-    return;
-  }
-  container.innerHTML = objs.map((o, i) => `
-    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:100px;background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.07);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
-      <input type="checkbox" data-obj-idx="${i}" style="width:13px;height:13px;accent-color:var(--accent);padding:0;border:none;box-shadow:none;background:none"/>
-      ${escHtml(o.text.length > 28 ? o.text.slice(0,28)+'…' : o.text)}
-    </label>`).join('');
-}
-
-function addMethodologyItem() {
-  const text = document.getElementById('methoInput').value.trim();
-  if (!text) { showToast('⚠️ Texte requis'); return; }
-  const checked = [...document.querySelectorAll('#methoObjLinks input[type=checkbox]:checked')];
-  const linkedObjIndices = checked.map(cb => parseInt(cb.dataset.objIdx));
-  const details = getSubjectDetails(detailSubjectId);
-  details.methodology.push({ text, done: false, linkedObjIndices });
-  document.getElementById('methoInput').value = '';
-  // uncheck all
-  document.querySelectorAll('#methoObjLinks input[type=checkbox]').forEach(cb => cb.checked = false);
-  saveSubjectDetails(detailSubjectId, details);
-  renderDetailTab('methodology');
-  showToast('✅ Étape ajoutée !');
-}
 
 function renderMethodology(items) {
   const el = document.getElementById('methoList');
@@ -2503,54 +2408,29 @@ function renderMethodology(items) {
   }).join('');
 }
 
-function addItem(section) {
-  const text = document.getElementById(inputId).value.trim();
-  if (!text) { showToast('⚠️ Texte requis'); return; }
-  const details = getSubjectDetails(detailSubjectId);
-  if (section === 'resources') {
-    const url = document.getElementById('resUrlInput').value.trim();
-    details.resources.push({ name: text, url, done: false });
-    document.getElementById('resUrlInput').value = '';
-  } else {
-    details[section].push({ text, done: false });
-  }
-  document.getElementById(inputId).value = '';
-  saveSubjectDetails(detailSubjectId, details);
-  renderDetailTab(section);
-  showToast('✅ Ajouté !');
-}
-
-function addObjective() {
-  const text = document.getElementById('objInput').value.trim();
-  if (!text) { showToast('⚠️ Le titre est requis !'); return; }
-  const desc = document.getElementById('objDesc').value.trim();
-  const planned = parseInt(document.getElementById('objPlanned').value) || 0;
-  const consumed = parseInt(document.getElementById('objConsumed').value) || 0;
-  const details = getSubjectDetails(detailSubjectId);
-  details.objectives.push({ text, desc, planned, consumed, done: false });
-  document.getElementById('objInput').value = '';
-  document.getElementById('objDesc').value = '';
-  document.getElementById('objPlanned').value = '';
-  document.getElementById('objConsumed').value = '';
-  saveSubjectDetails(detailSubjectId, details);
-  autoProgressFromObjectives(detailSubjectId, details);
-  renderDetailTab('objectives');
-  showToast('✅ Objectif ajouté !');
-}
-
-// ─── Edit Objective Modal ─────────────────────────────────────────
+// ─── Add / Edit Objective Modal (shared) ───────────────────────────
 let editingObjIndex = null;
 
 function openEditObjModal(index) {
-  const details = getSubjectDetails(detailSubjectId);
-  const obj = details.objectives[index];
-  if (!obj) return;
-  editingObjIndex = index;
-  document.getElementById('editObjInput').value = obj.text || '';
-  document.getElementById('editObjDesc').value = obj.desc || '';
-  document.getElementById('editObjPlanned').value = obj.planned || '';
-  document.getElementById('editObjConsumed').value = obj.consumed || '';
+  const isNew = (index === undefined || index === null);
+  editingObjIndex = isNew ? null : index;
+  document.getElementById('editObjModalTitle').textContent = isNew ? '➕ Nouvel objectif' : '✏️ Modifier l\'objectif';
+  if (isNew) {
+    document.getElementById('editObjInput').value = '';
+    document.getElementById('editObjDesc').value = '';
+    document.getElementById('editObjPlanned').value = '';
+    document.getElementById('editObjConsumed').value = '';
+  } else {
+    const details = getSubjectDetails(detailSubjectId);
+    const obj = details.objectives[index];
+    if (!obj) return;
+    document.getElementById('editObjInput').value = obj.text || '';
+    document.getElementById('editObjDesc').value = obj.desc || '';
+    document.getElementById('editObjPlanned').value = obj.planned || '';
+    document.getElementById('editObjConsumed').value = obj.consumed || '';
+  }
   document.getElementById('editObjModal').classList.add('open');
+  setTimeout(() => document.getElementById('editObjInput').focus(), 80);
 }
 
 function closeEditObjModal() {
@@ -2562,17 +2442,22 @@ function saveEditObjective() {
   const text = document.getElementById('editObjInput').value.trim();
   if (!text) { showToast('⚠️ Le titre est requis !'); return; }
   const details = getSubjectDetails(detailSubjectId);
-  const obj = details.objectives[editingObjIndex];
-  if (!obj) return;
-  obj.text = text;
-  obj.desc = document.getElementById('editObjDesc').value.trim();
-  obj.planned = parseInt(document.getElementById('editObjPlanned').value) || 0;
-  obj.consumed = parseInt(document.getElementById('editObjConsumed').value) || 0;
+  const desc = document.getElementById('editObjDesc').value.trim();
+  const planned = parseInt(document.getElementById('editObjPlanned').value) || 0;
+  const consumed = parseInt(document.getElementById('editObjConsumed').value) || 0;
+  if (editingObjIndex === null) {
+    details.objectives.push({ text, desc, planned, consumed, done: false });
+  } else {
+    const obj = details.objectives[editingObjIndex];
+    if (!obj) return;
+    obj.text = text; obj.desc = desc; obj.planned = planned; obj.consumed = consumed;
+  }
+  const wasNew = editingObjIndex === null;
   saveSubjectDetails(detailSubjectId, details);
   autoProgressFromObjectives(detailSubjectId, details);
   renderDetailTab('objectives');
   closeEditObjModal();
-  showToast('✏️ Objectif modifié !');
+  showToast(wasNew ? '✅ Objectif ajouté !' : '✏️ Objectif modifié !');
 }
 
 // Close edit modal on backdrop click
@@ -2621,17 +2506,6 @@ function deleteItem(section, index) {
     if (section === 'objectives') { autoProgressFromObjectives(detailSubjectId, details); updateDetailTotalTime(details); }
     renderDetailTab(section);
   });
-}
-
-function addJournalEntry() {
-  const text = document.getElementById('journalInput').value.trim();
-  if (!text) { showToast('⚠️ Écris quelque chose !'); return; }
-  const details = getSubjectDetails(detailSubjectId);
-  details.journal.push({ text, date: new Date().toISOString() });
-  document.getElementById('journalInput').value = '';
-  saveSubjectDetails(detailSubjectId, details);
-  renderDetailTab('journal');
-  showToast('📓 Note ajoutée !');
 }
 
 function deleteJournalEntry(index) {
