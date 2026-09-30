@@ -264,6 +264,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .sem-mini-btn:hover { background:rgba(255,255,255,0.9); }
 .sem-mini-btn.del { color:#FF3B30; border-color:rgba(255,59,48,0.2); }
 .sem-mini-btn.del:hover { background:rgba(255,59,48,0.07); }
+.sem-rename-input { width:100%; padding:5px 8px; font-size:14px; font-weight:700; border-radius:8px; border:1px solid var(--accent); background:rgba(255,255,255,0.9); font-family:inherit; }
 
 /* Toast */
 .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); padding:11px 22px; border-radius:100px; font-size:14px; font-weight:700; color:white; z-index:500; opacity:0; transition:all 0.3s; background:rgba(0,0,0,0.78); backdrop-filter:blur(20px); pointer-events:none; white-space:nowrap; }
@@ -1616,7 +1617,10 @@ function openSemModal() {
 function closeSemModal() {
   document.getElementById('semModal').classList.remove('open');
   document.getElementById('newSemName').value = '';
+  renamingSem = null;
 }
+
+let renamingSem = null;
 
 function renderSemList() {
   const meta = getMeta(currentChild);
@@ -1624,23 +1628,75 @@ function renderSemList() {
   list.innerHTML = meta.semesters.map(sem => {
     const count = getSubjects(currentChild, sem).length;
     const isCurrent = sem === currentSemester;
+    const isRenaming = sem === renamingSem;
+    const semEsc = sem.replace(/'/g,"\\'");
     return `
     <div class="sem-item ${isCurrent ? 'current' : ''}">
-      <div>
-        <div class="sem-item-name">${isCurrent ? '📍 ' : ''}${sem}</div>
+      <div style="flex:1;min-width:0">
+        ${isRenaming
+          ? `<input type="text" class="sem-rename-input" id="semRenameInput" value="${sem.replace(/"/g,'&quot;')}" maxlength="40"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();commitRenameSemester('${semEsc}');}if(event.key==='Escape'){event.preventDefault();cancelRenameSemester();}"
+               onblur="commitRenameSemester('${semEsc}')" />`
+          : `<div class="sem-item-name">${isCurrent ? '📍 ' : ''}${sem}</div>`}
         <div class="sem-item-count">${count} sujet${count > 1 ? 's' : ''}</div>
       </div>
       <div class="sem-item-actions">
-        ${!isCurrent ? `<button class="sem-mini-btn" onclick="switchSemFromModal('${sem.replace(/'/g,"\\'")}')">Aller</button>` : '<span style="font-size:11px;color:var(--accent);font-weight:700">Actif</span>'}
-        ${meta.semesters.length > 1 && !isCurrent ? `<button class="sem-mini-btn del" onclick="deleteSemester('${sem.replace(/'/g,"\\'")}')">✕</button>` : ''}
+        ${!isRenaming ? `<button class="sem-mini-btn" onclick="startRenameSemester('${semEsc}')" title="Renommer">✏️</button>` : ''}
+        ${!isCurrent && !isRenaming ? `<button class="sem-mini-btn" onclick="switchSemFromModal('${semEsc}')">Aller</button>` : ''}
+        ${isCurrent && !isRenaming ? '<span style="font-size:11px;color:var(--accent);font-weight:700">Actif</span>' : ''}
+        ${meta.semesters.length > 1 && !isCurrent && !isRenaming ? `<button class="sem-mini-btn del" onclick="deleteSemester('${semEsc}')">✕</button>` : ''}
       </div>
     </div>`;
   }).join('');
+  if (renamingSem) {
+    const inp = document.getElementById('semRenameInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }
 }
 
 function switchSemFromModal(sem) {
   switchSemester(sem);
   renderSemList();
+}
+
+function startRenameSemester(sem) {
+  renamingSem = sem;
+  renderSemList();
+}
+
+function cancelRenameSemester() {
+  renamingSem = null;
+  renderSemList();
+}
+
+function commitRenameSemester(oldName) {
+  if (renamingSem !== oldName) return; // already handled via the other event (Enter vs blur)
+  const inp = document.getElementById('semRenameInput');
+  renamingSem = null;
+  if (!inp) { renderSemList(); return; }
+  const newName = inp.value.trim();
+  if (!newName || newName === oldName) { renderSemList(); return; }
+  const meta = getMeta(currentChild);
+  if (meta.semesters.includes(newName)) {
+    showToast('⚠️ Ce semestre existe déjà');
+    renderSemList();
+    return;
+  }
+  // Move the subjects data to the new key, update meta references
+  const data = getSubjects(currentChild, oldName);
+  saveSubjectsData(currentChild, newName, data);
+  localStorage.removeItem(`data_${currentChild}_${oldName}`);
+  meta.semesters = meta.semesters.map(s => s === oldName ? newName : s);
+  if (meta.activeSemester === oldName) meta.activeSemester = newName;
+  saveMeta(currentChild, meta);
+  if (currentSemester === oldName) {
+    currentSemester = newName;
+    subjects = data;
+  }
+  renderSemList();
+  renderSemDropdown();
+  render();
+  showToast(`✅ Semestre renommé en "${newName}"`);
 }
 
 function addSemester() {
