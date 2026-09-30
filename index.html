@@ -656,6 +656,12 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
   display: flex; flex-direction: column; gap: 12px;
 }
 .time-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.time-edit-banner {
+  font-size: 12px; font-weight: 700; color: #5856D6;
+  background: rgba(88,86,214,0.08); border: 1px solid rgba(88,86,214,0.18);
+  border-radius: 10px; padding: 7px 10px;
+}
+.time-edit-banner a { color: #5856D6; cursor: pointer; }
 .time-quick-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .time-quick-chip {
   padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 700;
@@ -680,6 +686,13 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
 .time-session-date { flex: 1; font-size: 12px; color: var(--text-secondary); }
 .time-session-info { font-size: 13px; opacity: 0.55; cursor: help; flex-shrink: 0; }
 .time-session-info:hover { opacity: 1; }
+.time-session-edit {
+  width: 24px; height: 24px; border-radius: 6px; border: none; cursor: pointer;
+  background: none; color: rgba(0,122,255,0.5); font-size: 13px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s; opacity: 0; flex-shrink: 0;
+}
+.time-session-row:hover .time-session-edit { opacity: 1; }
+.time-session-edit:hover { background: rgba(0,122,255,0.1); color: var(--accent); }
 .time-session-del {
   width: 24px; height: 24px; border-radius: 6px; border: none; cursor: pointer;
   background: none; color: rgba(255,59,48,0.4); font-size: 14px; display: flex; align-items: center; justify-content: center;
@@ -1152,6 +1165,9 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
     </div>
     <!-- Add form -->
     <div class="time-modal-form">
+      <div class="time-edit-banner" id="timeEditBanner" style="display:none">
+        ✏️ Modification d'une session — <a href="#" onclick="cancelEditTimeSession();return false;">annuler</a>
+      </div>
       <div class="time-input-row">
         <div>
           <div class="obj-add-label">Durée *</div>
@@ -1184,7 +1200,7 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
     <!-- Footer -->
     <div class="time-modal-footer">
       <button class="btn secondary" onclick="closeTimeModal()">Fermer</button>
-      <button class="btn primary" onclick="saveTimeSession()">+ Ajouter ✓</button>
+      <button class="btn primary" id="timeSaveBtn" onclick="saveTimeSession()">+ Ajouter ✓</button>
     </div>
   </div>
 </div>
@@ -1975,7 +1991,7 @@ function renderDetailTab(tab) {
   if (tab === 'objectives') renderObjectives(details.objectives);
   else if (tab === 'methodology') renderMethodology(details.methodology);
   else if (tab === 'resources') renderResources(details.resources);
-  else if (tab === 'journal') renderJournal(details.journal);
+  else if (tab === 'journal') renderJournal();
 }
 
 function renderObjectives(items) {
@@ -2099,22 +2115,57 @@ function renderResources(items) {
 }
 
 
-function renderJournal(entries) {
+function renderJournal() {
+  const details = getSubjectDetails(detailSubjectId);
+  const entries = details.journal || [];
+  const objs = details.objectives || [];
   const el = document.getElementById('journalList');
-  if (!entries.length) { el.innerHTML = '<div class="items-empty">Pas encore de note dans ce journal.</div>'; return; }
-  const sorted = [...entries].sort((a,b) => new Date(b.date)-new Date(a.date));
-  el.innerHTML = sorted.map((entry, si) => {
-    const origIdx = entries.indexOf(entry);
-    const d = new Date(entry.date);
+
+  // Notes, sorted — sortIdx matches what openItemEditModal('journal', i) expects.
+  const sortedNotes = [...entries].sort((a,b) => new Date(b.date)-new Date(a.date));
+  const noteItems = sortedNotes.map((entry, sortIdx) => ({
+    type: 'note', date: entry.date, text: entry.text,
+    sortIdx, origIdx: entries.indexOf(entry)
+  }));
+
+  // Time sessions logged on this subject's objectives.
+  const timeItems = [];
+  objs.forEach((o, oi) => {
+    (o.sessions || []).forEach((s, si) => {
+      timeItems.push({ type: 'time', date: s.date, mins: s.mins, desc: s.desc, objIdx: oi, sessionIdx: si, objText: o.text });
+    });
+  });
+
+  const all = [...noteItems, ...timeItems].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (!all.length) { el.innerHTML = '<div class="items-empty">Pas encore de note ni de temps enregistré dans ce journal.</div>'; return; }
+
+  el.innerHTML = all.map(item => {
+    const d = new Date(item.date);
     const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    if (item.type === 'note') {
+      return `
+      <div class="journal-entry">
+        <div class="journal-entry-date">📅 ${dateStr}</div>
+        <div class="journal-entry-text">${escHtml(item.text)}</div>
+        <button class="journal-entry-del" style="top:10px;right:36px" onclick="openItemEditModal('journal',${item.sortIdx})" title="Modifier">✏️</button>
+        <button class="journal-entry-del" onclick="deleteJournalEntry(${item.origIdx})">✕</button>
+      </div>`;
+    }
+    const text = `⏱️ ${formatMinutes(item.mins)} — ${escHtml(item.objText)}` + (item.desc ? `<br>${escHtml(item.desc)}` : '');
     return `
     <div class="journal-entry">
       <div class="journal-entry-date">📅 ${dateStr}</div>
-      <div class="journal-entry-text">${escHtml(entry.text)}</div>
-      <button class="journal-entry-del" style="top:10px;right:36px" onclick="openItemEditModal('journal',${si})" title="Modifier">✏️</button>
-      <button class="journal-entry-del" onclick="deleteJournalEntry(${origIdx})">✕</button>
+      <div class="journal-entry-text">${text}</div>
+      <button class="journal-entry-del" style="top:10px;right:36px" onclick="editTimeSessionFromJournal(${item.objIdx},${item.sessionIdx})" title="Modifier">✏️</button>
+      <button class="journal-entry-del" onclick="deleteTimeSession(${item.objIdx},${item.sessionIdx})">✕</button>
     </div>`;
   }).join('');
+}
+
+function editTimeSessionFromJournal(objIdx, sessionIdx) {
+  openTimeModal(objIdx);
+  startEditTimeSession(sessionIdx);
 }
 
 function escHtml(s) {
@@ -2123,6 +2174,7 @@ function escHtml(s) {
 
 // ─── Time tracking ────────────────────────────────────────────────
 let timingObjIndex = null;
+let editingSessionIndex = null;
 
 function parseDuration(str) {
   // Accepts: 1h30, 1h30m, 90m, 90, 1h, 2h15, 0h45
@@ -2177,6 +2229,7 @@ function renderTimeModalSessions() {
         <span class="time-session-mins">${formatMinutes(s.mins)}</span>
         <span class="time-session-date">${ds}</span>
         ${infoIcon}
+        <button class="time-session-edit" onclick="startEditTimeSession(${si})" title="Modifier">✏️</button>
         <button class="time-session-del" onclick="deleteTimeSession(${timingObjIndex},${si})" title="Supprimer">✕</button>
       </div>`;
     }).join('');
@@ -2187,9 +2240,7 @@ function openTimeModal(objIdx) {
   const details = getSubjectDetails(detailSubjectId);
   const obj = details.objectives[objIdx];
   document.getElementById('timeModalObjName').textContent = obj ? obj.text : '';
-  document.getElementById('timeInput').value = '';
-  document.getElementById('timeDate').value = new Date().toISOString().slice(0,10);
-  document.getElementById('timeDesc').value = '';
+  cancelEditTimeSession();
   renderTimeModalSessions();
   document.getElementById('timeModal').classList.add('open');
   setTimeout(() => document.getElementById('timeInput').focus(), 80);
@@ -2198,6 +2249,30 @@ function openTimeModal(objIdx) {
 function closeTimeModal() {
   document.getElementById('timeModal').classList.remove('open');
   timingObjIndex = null;
+  editingSessionIndex = null;
+}
+
+function startEditTimeSession(sessionIdx) {
+  const details = getSubjectDetails(detailSubjectId);
+  const obj = details.objectives[timingObjIndex];
+  const session = obj && obj.sessions && obj.sessions[sessionIdx];
+  if (!session) return;
+  editingSessionIndex = sessionIdx;
+  document.getElementById('timeInput').value = formatMinutes(session.mins);
+  document.getElementById('timeDate').value = new Date(session.date).toISOString().slice(0,10);
+  document.getElementById('timeDesc').value = session.desc || '';
+  document.getElementById('timeSaveBtn').textContent = '✏️ Enregistrer ✓';
+  document.getElementById('timeEditBanner').style.display = 'block';
+  document.getElementById('timeInput').focus();
+}
+
+function cancelEditTimeSession() {
+  editingSessionIndex = null;
+  document.getElementById('timeInput').value = '';
+  document.getElementById('timeDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('timeDesc').value = '';
+  document.getElementById('timeSaveBtn').textContent = '+ Ajouter ✓';
+  document.getElementById('timeEditBanner').style.display = 'none';
 }
 
 function saveTimeSession() {
@@ -2211,15 +2286,20 @@ function saveTimeSession() {
   const obj = details.objectives[timingObjIndex];
   if (!obj) return;
   if (!obj.sessions) obj.sessions = [];
-  obj.sessions.push({ mins, date, desc });
+  const wasEditing = editingSessionIndex !== null;
+  if (wasEditing) {
+    obj.sessions[editingSessionIndex] = { mins, date, desc };
+  } else {
+    obj.sessions.push({ mins, date, desc });
+  }
   obj.sessions.sort((a,b) => new Date(b.date) - new Date(a.date));
   saveSubjectDetails(detailSubjectId, details);
   updateDetailTotalTime(details);
   renderDetailTab('objectives');
-  document.getElementById('timeInput').value = '';
-  document.getElementById('timeDesc').value = '';
+  renderDetailTab('journal');
+  cancelEditTimeSession();
   renderTimeModalSessions();
-  showToast(`⏱ +${formatMinutes(mins)} ajouté !`);
+  showToast(wasEditing ? '✏️ Session modifiée !' : `⏱ +${formatMinutes(mins)} ajouté !`);
 }
 
 function deleteTimeSession(objIdx, sessionIdx) {
@@ -2231,6 +2311,8 @@ function deleteTimeSession(objIdx, sessionIdx) {
     saveSubjectDetails(detailSubjectId, details);
     updateDetailTotalTime(details);
     renderDetailTab('objectives');
+    renderDetailTab('journal');
+    if (editingSessionIndex === sessionIdx) cancelEditTimeSession();
     renderTimeModalSessions();
   });
 }
