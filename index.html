@@ -989,23 +989,6 @@ input[type=range] { padding:6px 0; border:none; background:none; box-shadow:none
   </div>
 </div>
 
-<!-- ═══ Update Modal ═══ -->
-<div class="modal-overlay" id="updateModal">
-  <div class="modal glass-strong" style="max-width:380px">
-    <h2>Mise à jour 📈</h2>
-    <div id="updateSubjectName" style="font-size:17px;font-weight:800;margin-bottom:18px"></div>
-    <div class="form-group"><label>Consommé</label><input type="text" id="updateConsumed" placeholder="ex : 3 livres…" /></div>
-    <div class="form-group">
-      <label>Avancement — <span id="updateProgressDisplay" style="font-weight:800;color:var(--accent)">0%</span></label>
-      <input type="range" id="updateProgress" min="0" max="100" value="0" oninput="document.getElementById('updateProgressDisplay').textContent=this.value+'%'" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn secondary" onclick="closeUpdateModal()">Annuler</button>
-      <button class="btn primary" onclick="saveUpdate()">Mettre à jour</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══ Semester Manager Modal ═══ -->
 <div class="modal-overlay" id="semModal">
   <div class="modal glass-strong" style="max-width:420px">
@@ -1318,7 +1301,7 @@ const CHILDREN = {
 let currentChild = null;
 let currentSemester = null;   // string key e.g. "Printemps 2026"
 let subjects = [];
-let editingId = null, updatingId = null;
+let editingId = null;
 let selectedEmoji = '📚', selectedColor = { c1:'#007AFF', c2:'#5856D6' };
 let barInst = null, doughInst = null;
 
@@ -1809,8 +1792,16 @@ function render() {
         </div>
         ${s.description ? `<div class="card-desc">${s.description}</div>` : ''}
         <div class="card-meta">
-          <span class="meta-chip blue">🎯 ${s.planned || '—'}</span>
-          <span class="meta-chip green">✅ ${s.consumed || '0'}</span>
+          ${(() => {
+            if (!s.autoProgress) return `
+              <span class="meta-chip blue">🎯 ${s.planned || '—'}</span>
+              <span class="meta-chip green">✅ ${s.consumed || '0'}</span>`;
+            const objs = getSubjectDetails(s.id).objectives || [];
+            const done = objs.filter(o => o.done).length;
+            return `
+              <span class="meta-chip blue" title="Nombre d'objectifs">🎯 ${objs.length}</span>
+              <span class="meta-chip green" title="Objectifs terminés">✅ ${done}</span>`;
+          })()}
           ${s.autoProgress ? '<span class="meta-chip" style="background:rgba(0,122,255,0.07);border-color:rgba(0,122,255,0.15);color:#0060cc;font-size:10px">⚡ Auto</span>' : ''}
         </div>
         <div>
@@ -1823,7 +1814,6 @@ function render() {
           </div>
         </div>
         <div class="card-actions">
-          <button class="btn-sm primary" onclick="openUpdateModal('${s.id}')">+ Mise à jour</button>
           <button class="btn-sm" onclick="openEditModal('${s.id}')">✏️ Modifier</button>
           <button class="btn-sm danger" onclick="deleteSubject('${s.id}')">🗑️</button>
         </div>`;
@@ -1932,17 +1922,6 @@ function toggleProgressAuto() {
 
 function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
 
-function openUpdateModal(id) {
-  const s = subjects.find(x => x.id === id); if (!s) return;
-  updatingId = id;
-  document.getElementById('updateSubjectName').textContent = s.emoji + ' ' + s.title;
-  document.getElementById('updateConsumed').value = s.consumed || '';
-  document.getElementById('updateProgress').value = s.progress || 0;
-  document.getElementById('updateProgressDisplay').textContent = (s.progress || 0) + '%';
-  document.getElementById('updateModal').classList.add('open');
-}
-function closeUpdateModal() { document.getElementById('updateModal').classList.remove('open'); }
-
 function selectEmoji(el) {
   document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected'); selectedEmoji = el.dataset.emoji;
@@ -1977,16 +1956,6 @@ function saveSubject() {
   closeAddModal(); render();
 }
 
-function saveUpdate() {
-  const s = subjects.find(x => x.id === updatingId); if (!s) return;
-  s.consumed = document.getElementById('updateConsumed').value.trim();
-  s.progress = parseInt(document.getElementById('updateProgress').value) || 0;
-  s.updatedAt = new Date().toISOString();
-  saveSubjectsData(currentChild, currentSemester, subjects);
-  closeUpdateModal(); render();
-  showToast('📈 Avancement mis à jour !');
-}
-
 function deleteSubject(id) {
   const s = subjects.find(x => x.id === id);
   askConfirm('Supprimer le sujet ?', `"${s?.title||'ce sujet'}" et toutes ses données seront supprimés.`, () => {
@@ -2005,7 +1974,7 @@ function showToast(msg) {
 }
 
 // Close modals on backdrop click
-['addModal', 'updateModal', 'semModal'].forEach(id =>
+['addModal', 'semModal'].forEach(id =>
   document.getElementById(id).addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
   })
