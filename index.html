@@ -1346,6 +1346,27 @@ function saveSubjectsData(child, semester, data) {
   localStorage.setItem(`data_${child}_${semester}`, JSON.stringify(data));
 }
 
+// Self-healing: an earlier version of the semester-rename feature moved a
+// subject's list entry but left its details (objectives/methodology/…)
+// behind under the old semester name. On load, reattach any such orphaned
+// details to the matching subject — matched by id, which is stable across
+// renames — so nothing stays silently lost.
+function repairOrphanedDetails(child, semester, subjectsList) {
+  const prefix = `details_${child}_`;
+  subjectsList.forEach(s => {
+    const currentKey = `${prefix}${semester}_${s.id}`;
+    if (localStorage.getItem(currentKey)) return;
+    const suffix = `_${s.id}`;
+    const orphanKey = Object.keys(localStorage).find(k =>
+      k.startsWith(prefix) && k.endsWith(suffix) && k !== currentKey
+    );
+    if (orphanKey) {
+      localStorage.setItem(currentKey, localStorage.getItem(orphanKey));
+      localStorage.removeItem(orphanKey);
+    }
+  });
+}
+
 function autoSemesterName() {
   const m = new Date().getMonth() + 1, y = new Date().getFullYear();
   if (m >= 9) return `Automne ${y}`;
@@ -1539,6 +1560,7 @@ function selectChild(child) {
   const meta = getMeta(child);
   currentSemester = meta.activeSemester;
   subjects = getSubjects(child, currentSemester);
+  repairOrphanedDetails(child, currentSemester, subjects);
 
   const cfg = CHILDREN[child];
   document.body.style.background = cfg.bg;
@@ -1593,6 +1615,7 @@ function closeSemDropdown() {
 function switchSemester(sem) {
   currentSemester = sem;
   subjects = getSubjects(currentChild, sem);
+  repairOrphanedDetails(currentChild, sem, subjects);
   // Update active in meta
   const meta = getMeta(currentChild);
   meta.activeSemester = sem;
@@ -1686,6 +1709,16 @@ function commitRenameSemester(oldName) {
   const data = getSubjects(currentChild, oldName);
   saveSubjectsData(currentChild, newName, data);
   localStorage.removeItem(`data_${currentChild}_${oldName}`);
+  // Move each subject's details (objectives/methodology/resources/journal) too —
+  // they live under their own key scoped by semester name.
+  data.forEach(s => {
+    const oldKey = `details_${currentChild}_${oldName}_${s.id}`;
+    const raw = localStorage.getItem(oldKey);
+    if (raw) {
+      localStorage.setItem(`details_${currentChild}_${newName}_${s.id}`, raw);
+      localStorage.removeItem(oldKey);
+    }
+  });
   meta.semesters = meta.semesters.map(s => s === oldName ? newName : s);
   if (meta.activeSemester === oldName) meta.activeSemester = newName;
   saveMeta(currentChild, meta);
